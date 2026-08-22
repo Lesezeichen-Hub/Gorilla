@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GORILLAS</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --blue: #0000aa;
+      --cyan: #55ffff;
+      --yellow: #ffff55;
+      --white: #ffffff;
+      --black: #000000;
+      --gray: #aaaaaa;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #050505;
+      font-family: "Courier New", monospace;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    #shell {
+      position: relative;
+      width: min(100vw, calc(100vh * 16 / 9));
+      aspect-ratio: 16 / 9;
+      background: var(--blue);
+      box-shadow: 0 0 0 2px #222, 0 18px 70px #000;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+
+    .panel {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 4%;
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    .setup {
+      width: min(800px, 88%);
+      text-align: center;
+    }
+
+    .logo {
+      margin: 0 0 0.55em;
+      color: var(--yellow);
+      font-size: clamp(34px, 6vw, 96px);
+      line-height: 1;
+      letter-spacing: 0;
+      text-shadow: 0.08em 0.08em 0 #aa5500;
+    }
+
+    .setup p {
+      margin: 0.75em 0;
+      font-size: clamp(13px, 1.5vw, 24px);
+      line-height: 1.45;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px 28px;
+      margin: 8% 0 5%;
+      text-align: left;
+    }
+
+    label {
+      color: var(--cyan);
+      font-size: clamp(12px, 1.25vw, 20px);
+    }
+
+    input, select, button {
+      border: 0;
+      border-radius: 0;
+      font: inherit;
+    }
+
+    .fields input, .fields select {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px 12px;
+      color: var(--black);
+      background: var(--gray);
+      outline: 3px solid var(--white);
+      font-size: clamp(14px, 1.3vw, 21px);
+    }
+
+    button {
+      min-height: 44px;
+      padding: 10px 22px;
+      color: var(--black);
+      background: var(--gray);
+      box-shadow: inset -4px -4px 0 #555, inset 4px 4px 0 var(--white);
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:active {
+      box-shadow: inset 4px 4px 0 #555, inset -4px -4px 0 var(--white);
+      transform: translate(2px, 2px);
+    }
+
+    .controls {
+      position: absolute;
+      left: 50%;
+      bottom: 2.4%;
+      display: flex;
+      align-items: end;
+      gap: 18px;
+      width: min(920px, 93%);
+      padding: 14px 18px;
+      color: var(--white);
+      background: var(--black);
+      border: 4px solid var(--gray);
+      transform: translateX(-50%);
+    }
+
+    .controls label { flex: 1; }
+
+    .controls input {
+      width: 100%;
+      margin-top: 5px;
+      padding: 8px 10px;
+      color: var(--yellow);
+      background: var(--blue);
+      outline: 2px solid var(--white);
+      font-size: clamp(16px, 1.45vw, 25px);
+    }
+
+    #throw { color: var(--black); background: var(--yellow); }
+
+    #fullscreen {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 46px;
+      min-height: 42px;
+      padding: 0;
+      font-size: 25px;
+    }
+
+    .hidden { display: none; }
+
+    @media (max-width: 700px), (max-height: 520px) {
+      .fields { gap: 12px; margin: 4% 0; }
+      .controls { gap: 9px; padding: 7px 9px; border-width: 2px; }
+      .controls label { font-size: 10px; }
+      .controls input { padding: 4px 6px; }
+      .controls button { min-height: 34px; padding: 5px 10px; }
+      #fullscreen { top: 7px; right: 7px; width: 36px; min-height: 34px; font-size: 18px; }
+    }
+
+    @media (orientation: portrait) {
+      .panel { padding: 0; }
+      .setup {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 190%;
+        transform: translate(-50%, -50%) scale(0.5);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="shell">
+    <canvas id="game" width="1920" height="1080" aria-label="GORILLAS Spielfeld"></canvas>
+
+    <section id="start" class="panel">
+      <form id="setup" class="setup">
+        <h1 class="logo">GORILLAS</h1>
+        <p>Willkommen bei GORILLAS!<br>Wirf explodierende Bananen auf deinen Gegner.</p>
+        <div class="fields">
+          <label>Spieler 1
+            <input id="player1" value="SPIELER 1" maxlength="12" autocomplete="off">
+          </label>
+          <label>Spieler 2
+            <input id="player2" value="SPIELER 2" maxlength="12" autocomplete="off">
+          </label>
+          <label>Punkte zum Sieg
+            <select id="target">
+              <option>1</option>
+              <option selected>3</option>
+              <option>5</option>
+              <option>9</option>
+            </select>
+          </label>
+          <label>Gravitation
+            <select id="gravity">
+              <option value="140">Mond</option>
+              <option value="220" selected>Erde</option>
+              <option value="320">Jupiter</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit">SPIEL STARTEN</button>
+      </form>
+    </section>
+
+    <form id="controls" class="controls hidden">
+      <label>WINKEL
+        <input id="angle" type="number" min="0" max="90" value="45" inputmode="decimal">
+      </label>
+      <label>GESCHWINDIGKEIT
+        <input id="velocity" type="number" min="10" max="200" value="90" inputmode="decimal">
+      </label>
+      <button id="throw" type="submit">WERFEN</button>
+    </form>
+    <button id="fullscreen" class="hidden" type="button" title="Vollbild" aria-label="Vollbild">&#x26F6;</button>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const WIDTH = 1920;
+      const HEIGHT = 1080;
+      const ROOF_MIN = 360;
+      const GROUND = 1010;
+      const ctx = document.querySelector("#game").getContext("2d");
+      const canvas = document.querySelector("#game");
+      const startPanel = document.querySelector("#start");
+      const setupForm = document.querySelector("#setup");
+      const controls = document.querySelector("#controls");
+      const angleInput = document.querySelector("#angle");
+      const velocityInput = document.querySelector("#velocity");
+      const fullscreenButton = document.querySelector("#fullscreen");
+      let audioContext = null;
+
+      const COLORS = {
+        sky: "#0000aa",
+        cyan: "#55ffff",
+        yellow: "#ffff55",
+        red: "#ff5555",
+        magenta: "#ff55ff",
+        green: "#55ff55",
+        white: "#ffffff",
+        black: "#000000",
+        gray: "#aaaaaa",
+        darkGray: "#555555",
+        brown: "#aa5500"
+      };
+
+      const state = {
+        players: ["SPIELER 1", "SPIELER 2"],
+        scores: [0, 0],
+        target: 3,
+        gravity: 220,
+        turn: 0,
+        wind: 0,
+        buildings: [],
+        craters: [],
+        gorillas: [],
+        projectile: null,
+        explosion: null,
+        message: "",
+        messageUntil: 0,
+        roundOver: false,
+        winner: null,
+        lastTime: 0
+      };
+
+      function random(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function beep(frequency, duration, delay = 0, type = "square") {
+        audioContext ??= new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        const start = audioContext.currentTime + delay;
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.055, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        oscillator.connect(gain).connect(audioContext.destination);
+        oscillator.start(start);
+        oscillator.stop(start + duration);
+      }
+
+      function newCity() {
+        state.buildings = [];
+        state.craters = [];
+        let x = 0;
+        let index = 0;
+        const palette = [COLORS.cyan, COLORS.red, COLORS.magenta, COLORS.gray, COLORS.green];
+
+        while (x < WIDTH) {
+          const width = Math.round(random(145, 255));
+          const roof = Math.round(random(ROOF_MIN, 760));
+          state.buildings.push({
+            x,
+            y: roof,
+            width: Math.min(width, WIDTH - x + 2),
+            height: GROUND - roof,
+            color: palette[index % palette.length],
+            windows: makeWindows(x, roof, width)
+          });
+          x += width;
+          index += 1;
+        }
+
+        const leftCandidates = state.buildings.slice(1, Math.max(3, Math.floor(state.buildings.length * 0.38)));
+        const rightStart = Math.floor(state.buildings.length * 0.62);
+        const rightCandidates = state.buildings.slice(rightStart, -1);
+        const leftBuilding = leftCandidates[Math.floor(random(0, leftCandidates.length))];
+        const rightBuilding = rightCandidates[Math.floor(random(0, rightCandidates.length))];
+
+        state.gorillas = [placeGorilla(leftBuilding), placeGorilla(rightBuilding)];
+        state.wind = Math.round(random(-8, 8));
+        state.projectile = null;
+        state.explosion = null;
+        state.roundOver = false;
+        state.winner = null;
+        state.message = `${state.players[state.turn]} IST DRAN`;
+        state.messageUntil = performance.now() + 1300;
+        controls.classList.remove("hidden");
+        angleInput.focus();
+        angleInput.select();
+      }
+
+      function makeWindows(x, roof, width) {
+        const windows = [];
+        for (let wy = roof + 42; wy < GROUND - 28; wy += 58) {
+          for (let wx = x + 28; wx < x + width - 20; wx += 48) {
+            windows.push({ x: wx, y: wy, lit: Math.random() > 0.38 });
+          }
+        }
+        return windows;
+      }
+
+      function placeGorilla(building) {
+        return {
+          x: Math.round(building.x + building.width / 2),
+          y: building.y - 72,
+          alive: true,
+          pose: "idle"
+        };
+      }
+
+      function pointInCraters(x, y) {
+        return state.craters.some(crater => Math.hypot(x - crater.x, y - crater.y) < crater.radius);
+      }
+
+      function pointInBuilding(x, y) {
+        if (pointInCraters(x, y)) return false;
+        return state.buildings.some(building =>
+          x >= building.x && x <= building.x + building.width &&
+          y >= building.y && y <= GROUND
+        );
+      }
+
+      function hitGorilla(x, y) {
+        return state.gorillas.findIndex(gorilla =>
+          gorilla.alive && Math.abs(x - gorilla.x) < 42 && y > gorilla.y - 5 && y < gorilla.y + 78
+        );
+      }
+
+      function throwBanana() {
+        if (state.projectile || state.explosion || state.roundOver) return;
+        const angle = clamp(Number(angleInput.value) || 0, 0, 90);
+        const velocity = clamp(Number(velocityInput.value) || 10, 10, 200);
+        angleInput.value = angle;
+        velocityInput.value = velocity;
+
+        const direction = state.turn === 0 ? 1 : -1;
+        const radians = angle * Math.PI / 180;
+        const gorilla = state.gorillas[state.turn];
+        state.projectile = {
+          x: gorilla.x + direction * 42,
+          y: gorilla.y + 2,
+          vx: Math.cos(radians) * velocity * 5.4 * direction,
+          vy: -Math.sin(radians) * velocity * 5.4,
+          rotation: 0,
+          age: 0
+        };
+        beep(760, 0.06);
+        gorilla.pose = "throw";
+        controls.classList.add("hidden");
+      }
+
+      function updateProjectile(dt) {
+        const banana = state.projectile;
+        if (!banana) return;
+
+        banana.age += dt;
+        banana.vx += state.wind * 9 * dt;
+        banana.vy += state.gravity * dt;
+        banana.x += banana.vx * dt;
+        banana.y += banana.vy * dt;
+        banana.rotation += dt * 11;
+
+        const victim = hitGorilla(banana.x, banana.y);
+        if (victim >= 0 && banana.age > 0.08) {
+          explode(banana.x, banana.y, victim);
+          return;
+        }
+
+        if (pointInBuilding(banana.x, banana.y)) {
+          explode(banana.x, banana.y, -1);
+          return;
+        }
+
+        if (banana.x < -80 || banana.x > WIDTH + 80 || banana.y > HEIGHT + 80) {
+          state.projectile = null;
+          finishMiss();
+        }
+      }
+
+      function explode(x, y, victim) {
+        state.projectile = null;
+        state.explosion = { x, y, radius: 5, maxRadius: victim >= 0 ? 86 : 68, phase: "grow", victim };
+        if (victim < 0) state.craters.push({ x, y, radius: 70 });
+        beep(150, 0.22, 0, "sawtooth");
+        beep(85, 0.3, 0.08, "sawtooth");
+      }
+
+      function updateExplosion(dt) {
+        const explosion = state.explosion;
+        if (!explosion) return;
+
+        if (explosion.phase === "grow") {
+          explosion.radius += 240 * dt;
+          if (explosion.radius >= explosion.maxRadius) {
+            explosion.radius = explosion.maxRadius;
+            explosion.phase = "shrink";
+          }
+          return;
+        }
+
+        explosion.radius -= 180 * dt;
+        if (explosion.radius > 0) return;
+
+        const victim = explosion.victim;
+        state.explosion = null;
+        if (victim >= 0) finishHit(victim);
+        else finishMiss();
+      }
+
+      function finishMiss() {
+        state.gorillas[state.turn].pose = "idle";
+        state.turn = 1 - state.turn;
+        state.message = `${state.players[state.turn]} IST DRAN`;
+        state.messageUntil = performance.now() + 900;
+        controls.classList.remove("hidden");
+        angleInput.focus();
+        angleInput.select();
+      }
+
+      function finishHit(victim) {
+        state.gorillas[victim].alive = false;
+        const scorer = 1 - victim;
+        state.scores[scorer] += 1;
+        state.roundOver = true;
+        state.winner = scorer;
+        state.gorillas[scorer].pose = "dance";
+        state.message = `${state.players[scorer]} ERZIELT EINEN PUNKT!`;
+        state.messageUntil = Infinity;
+        beep(523, 0.12, 0.05);
+        beep(659, 0.12, 0.2);
+        beep(784, 0.24, 0.35);
+        window.setTimeout(() => {
+          if (state.scores[scorer] >= state.target) {
+            state.message = `${state.players[scorer]} HAT GEWONNEN!  ENTER = NEUES SPIEL`;
+          } else {
+            state.turn = 1 - state.turn;
+            newCity();
+          }
+        }, 2400);
+      }
+
+      function drawText(text, x, y, size, color = COLORS.white, align = "left") {
+        ctx.fillStyle = COLORS.black;
+        ctx.font = `bold ${size}px "Courier New", monospace`;
+        ctx.textAlign = align;
+        ctx.textBaseline = "top";
+        ctx.fillText(text, x + 4, y + 4);
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y);
+      }
+
+      function drawSky() {
+        ctx.fillStyle = COLORS.sky;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        drawSun();
+      }
+
+      function drawSun() {
+        const x = WIDTH / 2;
+        const y = 145;
+        ctx.fillStyle = COLORS.yellow;
+        ctx.beginPath();
+        ctx.arc(x, y, 61, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = COLORS.black;
+        ctx.fillRect(x - 27, y - 18, 10, 12);
+        ctx.fillRect(x + 17, y - 18, 10, 12);
+        if (state.projectile && Math.hypot(state.projectile.x - x, state.projectile.y - y) < 90) {
+          ctx.fillRect(x - 28, y + 24, 56, 9);
+        } else {
+          ctx.fillRect(x - 28, y + 20, 10, 9);
+          ctx.fillRect(x - 18, y + 27, 36, 9);
+          ctx.fillRect(x + 18, y + 20, 10, 9);
+        }
+      }
+
+      function drawCity() {
+        for (const building of state.buildings) {
+          ctx.fillStyle = building.color;
+          ctx.fillRect(building.x, building.y, building.width, building.height);
+          ctx.fillStyle = COLORS.white;
+          ctx.fillRect(building.x, building.y, building.width, 5);
+          for (const window of building.windows) {
+            ctx.fillStyle = window.lit ? COLORS.yellow : COLORS.black;
+            ctx.fillRect(window.x, window.y, 20, 27);
+          }
+        }
+
+        for (const crater of state.craters) {
+          ctx.fillStyle = COLORS.sky;
+          ctx.beginPath();
+          ctx.arc(crater.x, crater.y, crater.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = COLORS.darkGray;
+        ctx.fillRect(0, GROUND, WIDTH, HEIGHT - GROUND);
+      }
+
+      function drawGorilla(gorilla, index) {
+        if (!gorilla.alive) return;
+        const x = Math.round(gorilla.x);
+        const y = Math.round(gorilla.y);
+        const dancing = gorilla.pose === "dance";
+        const throwing = gorilla.pose === "throw";
+        const pulse = dancing && Math.floor(performance.now() / 220) % 2 === 0;
+        const leftArmUp = pulse || (throwing && index === 0);
+        const rightArmUp = !pulse || (throwing && index === 1);
+
+        ctx.fillStyle = COLORS.brown;
+        ctx.fillRect(x - 29, y + 17, 58, 49);
+        ctx.fillRect(x - 21, y, 42, 31);
+        ctx.fillRect(x - 34, y + 62, 25, 14);
+        ctx.fillRect(x + 9, y + 62, 25, 14);
+        drawArm(x - 31, y + 24, -1, leftArmUp);
+        drawArm(x + 31, y + 24, 1, rightArmUp);
+
+        ctx.fillStyle = COLORS.yellow;
+        ctx.fillRect(x - 13, y + 8, 26, 16);
+        ctx.fillStyle = COLORS.black;
+        ctx.fillRect(x - 9, y + 10, 5, 5);
+        ctx.fillRect(x + 4, y + 10, 5, 5);
+        ctx.fillRect(x - 5, y + 19, 10, 4);
+      }
+
+      function drawArm(x, y, direction, raised) {
+        ctx.fillStyle = COLORS.brown;
+        if (raised) {
+          ctx.fillRect(x + (direction < 0 ? -12 : 0), y - 36, 13, 43);
+          ctx.fillRect(x + (direction < 0 ? -13 : 1), y - 43, 15, 14);
+        } else {
+          ctx.fillRect(x + (direction < 0 ? -17 : 4), y, 18, 47);
+          ctx.fillRect(x + (direction < 0 ? -19 : 6), y + 39, 18, 14);
+        }
+      }
+
+      function drawBanana() {
+        const banana = state.projectile;
+        if (!banana) return;
+        ctx.save();
+        ctx.translate(Math.round(banana.x), Math.round(banana.y));
+        ctx.rotate(banana.rotation);
+        ctx.strokeStyle = COLORS.yellow;
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.arc(0, -2, 16, 0.2, Math.PI * 1.18);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawExplosion() {
+        const explosion = state.explosion;
+        if (!explosion) return;
+        ctx.fillStyle = explosion.phase === "grow" ? COLORS.yellow : COLORS.red;
+        ctx.beginPath();
+        ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = COLORS.white;
+        ctx.beginPath();
+        ctx.arc(explosion.x, explosion.y, explosion.radius * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawHud(now) {
+        drawText(`${state.players[0]}  ${state.scores[0]}`, 52, 34, 32, COLORS.white);
+        drawText(`${state.scores[1]}  ${state.players[1]}`, WIDTH - 52, 34, 32, COLORS.white, "right");
+
+        const windCenter = WIDTH / 2;
+        drawText(`WIND ${Math.abs(state.wind)}`, windCenter, 246, 25, COLORS.cyan, "center");
+        if (state.wind !== 0) {
+          const direction = Math.sign(state.wind);
+          ctx.strokeStyle = COLORS.cyan;
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.moveTo(windCenter - direction * 8, 294);
+          ctx.lineTo(windCenter + direction * 56, 294);
+          ctx.lineTo(windCenter + direction * 39, 279);
+          ctx.moveTo(windCenter + direction * 56, 294);
+          ctx.lineTo(windCenter + direction * 39, 309);
+          ctx.stroke();
+        }
+
+        if (state.message && now < state.messageUntil) {
+          ctx.fillStyle = COLORS.black;
+          const messageWidth = Math.min(WIDTH - 160, state.message.length * 25 + 80);
+          ctx.fillRect((WIDTH - messageWidth) / 2, 338, messageWidth, 64);
+          drawText(state.message, WIDTH / 2, 350, 28, COLORS.yellow, "center");
+        }
+      }
+
+      function render(now) {
+        drawSky();
+        drawCity();
+        state.gorillas.forEach(drawGorilla);
+        drawBanana();
+        drawExplosion();
+        drawHud(now);
+      }
+
+      function frame(now) {
+        const dt = Math.min((now - state.lastTime) / 1000 || 0, 0.035);
+        state.lastTime = now;
+        updateProjectile(dt);
+        updateExplosion(dt);
+        render(now);
+        requestAnimationFrame(frame);
+      }
+
+      setupForm.addEventListener("submit", event => {
+        event.preventDefault();
+        state.players = [
+          document.querySelector("#player1").value.trim().toUpperCase() || "SPIELER 1",
+          document.querySelector("#player2").value.trim().toUpperCase() || "SPIELER 2"
+        ];
+        state.target = Number(document.querySelector("#target").value);
+        state.gravity = Number(document.querySelector("#gravity").value);
+        state.scores = [0, 0];
+        state.turn = 0;
+        startPanel.classList.add("hidden");
+        fullscreenButton.classList.remove("hidden");
+        newCity();
+      });
+
+      controls.addEventListener("submit", event => {
+        event.preventDefault();
+        throwBanana();
+      });
+
+      fullscreenButton.addEventListener("click", () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.querySelector("#shell").requestFullscreen();
+      });
+
+      window.addEventListener("keydown", event => {
+        if (event.key === "Enter" && state.roundOver && state.winner !== null && state.scores[state.winner] >= state.target) {
+          state.scores = [0, 0];
+          state.turn = 0;
+          newCity();
+        }
+      });
+
+      render(0);
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
