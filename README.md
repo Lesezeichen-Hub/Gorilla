@@ -2,6 +2,8 @@
 
 Eine browserbasierte Retro-Neuinterpretation des klassischen QBasic-Spiels **Gorillas**.
 
+![GORILLAS Screenshot](Screenshot.png)
+
 ## Start
 
 `index.html` direkt im Browser öffnen. Es ist kein Build-Schritt, kein Server und keine Installation erforderlich.
