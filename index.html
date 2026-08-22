@@ -617,8 +617,18 @@
       }
 
       function drawHud(now) {
-        drawText(`${state.players[0]}  ${state.scores[0]}`, 52, 34, 32, COLORS.white);
-        drawText(`${state.scores[1]}  ${state.players[1]}`, WIDTH - 52, 34, 32, COLORS.white, "right");
+        const leftColor = state.turn === 0 ? COLORS.yellow : COLORS.white;
+        const rightColor = state.turn === 1 ? COLORS.yellow : COLORS.white;
+        drawText(`${state.players[0]}  ${state.scores[0]}`, 52, 34, 32, leftColor);
+        drawText(`${state.scores[1]}  ${state.players[1]}`, WIDTH - 52, 34, 32, rightColor, "right");
+
+        if (!state.roundOver) {
+          const activePlayer = `AM ZUG: ${state.players[state.turn]}`;
+          const markerWidth = Math.min(WIDTH - 760, activePlayer.length * 20 + 70);
+          ctx.fillStyle = COLORS.black;
+          ctx.fillRect((WIDTH - markerWidth) / 2, 28, markerWidth, 48);
+          drawText(activePlayer, WIDTH / 2, 38, 22, COLORS.yellow, "center");
+        }
 
         const windCenter = WIDTH / 2;
         drawText(`WIND ${Math.abs(state.wind)}`, windCenter, 246, 25, COLORS.cyan, "center");
