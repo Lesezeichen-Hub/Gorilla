@@ -27,7 +27,7 @@ Der Button oben rechts aktiviert den Vollbildmodus. Im Vollbildmodus passt sich 
 - Trifft die Banane einen Gorilla, erhält der gegnerische Spieler einen Punkt.
 - Nach einem Treffer wird eine neue Skyline für die nächste Runde erzeugt.
 - Wer zuerst die eingestellte Punktzahl erreicht, gewinnt das Spiel.
-- Mit `Enter` kann nach einem gewonnenen Spiel eine neue Partie gestartet werden.
+- Mit `N` kann nach einem gewonnenen Spiel eine neue Partie gestartet werden.
 
 ## Varianten
 

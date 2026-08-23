@@ -486,7 +486,7 @@
         beep(784, 0.24, 0.35);
         window.setTimeout(() => {
           if (state.scores[scorer] >= state.target) {
-            state.message = `${state.players[scorer]} HAT GEWONNEN!  ENTER = NEUES SPIEL`;
+            state.message = `${state.players[scorer]} HAT GEWONNEN!  N = NEUES SPIEL`;
           } else {
             state.turn = 1 - state.turn;
             newCity();
@@ -697,7 +697,7 @@
       });
 
       window.addEventListener("keydown", event => {
-        if (event.key === "Enter" && state.roundOver && state.winner !== null && state.scores[state.winner] >= state.target) {
+        if (event.key.toLowerCase() === "n" && state.roundOver && state.winner !== null && state.scores[state.winner] >= state.target) {
           state.scores = [0, 0];
           state.turn = 0;
           newCity();
