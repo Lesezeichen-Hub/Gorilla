@@ -476,8 +476,9 @@
       }
 
       function explode(x, y, victim) {
+        const source = state.projectile?.source || "player";
         state.projectile = null;
-        state.explosion = { x, y, radius: 5, maxRadius: victim >= 0 ? 86 : 68, phase: "grow", victim, source: state.projectile?.source || "player" };
+        state.explosion = { x, y, radius: 5, maxRadius: victim >= 0 ? 86 : 68, phase: "grow", victim, source };
         if (victim < 0) state.craters.push({ x, y, radius: 70 });
         beep(150, 0.22, 0, "sawtooth");
         beep(85, 0.3, 0.08, "sawtooth");
