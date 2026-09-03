@@ -37,6 +37,10 @@ Die Gravitation kann zwischen drei Varianten gewechselt werden:
 - **Erde**: normale Spielphysik
 - **Jupiter**: schnelle, stark gekrümmte Flugbahn
 
+### Lianen-Gorillas
+
+Beim Spielstart kann **Zufallsereignisse** für Lianen-Gorillas eingeschaltet werden. Nach einer zufälligen Anfangswartezeit und anschließend in unregelmäßigen, bewusst nicht zu kurzen Abständen schwingt ein zusätzlicher Gorilla an einer Liane von oben ins Bild und lässt eine Banane senkrecht fallen. Trifft diese einen Spieler, erhält der jeweils andere Spieler einen Punkt. Ein Fehlschuss verändert den aktuellen Spielerzug nicht.
+
 ## Technik
 
 - Reines HTML, CSS und JavaScript

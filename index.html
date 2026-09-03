@@ -213,6 +213,12 @@
               <option value="320">Jupiter</option>
             </select>
           </label>
+          <label>Lianen-Gorillas
+            <select id="vine-mode">
+              <option value="off" selected>Aus</option>
+              <option value="on">Zufallsereignisse</option>
+            </select>
+          </label>
         </div>
         <button type="submit">SPIEL STARTEN</button>
       </form>
@@ -245,6 +251,7 @@
       const controls = document.querySelector("#controls");
       const angleInput = document.querySelector("#angle");
       const velocityInput = document.querySelector("#velocity");
+      const vineModeInput = document.querySelector("#vine-mode");
       const fullscreenButton = document.querySelector("#fullscreen");
       let audioContext = null;
 
@@ -278,6 +285,9 @@
         messageUntil: 0,
         roundOver: false,
         winner: null,
+        vineMode: false,
+        vine: null,
+        nextVineAt: Infinity,
         lastTime: 0
       };
 
@@ -335,6 +345,8 @@
         state.wind = Math.round(random(-8, 8));
         state.projectile = null;
         state.explosion = null;
+        state.vine = null;
+        scheduleVineEvent();
         state.roundOver = false;
         state.winner = null;
         state.message = `${state.players[state.turn]} IST DRAN`;
@@ -381,6 +393,36 @@
         );
       }
 
+      function scheduleVineEvent() {
+        state.nextVineAt = state.vineMode ? performance.now() + random(12000, 22000) : Infinity;
+      }
+
+      function updateVineEvent(now, dt) {
+        if (!state.vineMode || state.roundOver || state.explosion || state.projectile) return;
+        if (!state.vine && now >= state.nextVineAt) {
+          const target = Math.floor(random(0, state.gorillas.length));
+          const gorilla = state.gorillas[target];
+          if (!gorilla?.alive) return scheduleVineEvent();
+          state.vine = { x: clamp(gorilla.x + random(-260, 260), 120, WIDTH - 120), y: -95, phase: "descend" };
+          state.message = "ACHTUNG: LIANEN-GORILLA!";
+          state.messageUntil = now + 1300;
+          beep(280, 0.08);
+        }
+        const vine = state.vine;
+        if (!vine) return;
+        if (vine.phase === "descend") {
+          vine.y += 420 * dt;
+          if (vine.y >= 106) {
+            vine.y = 106;
+            vine.phase = "drop";
+          }
+          return;
+        }
+        state.projectile = { x: vine.x, y: vine.y + 68, vx: 0, vy: 40, rotation: 0, age: 0, source: "vine" };
+        state.vine = null;
+        beep(620, 0.06);
+      }
+
       function throwBanana() {
         if (state.projectile || state.explosion || state.roundOver) return;
         const angle = clamp(Number(angleInput.value) || 0, 0, 90);
@@ -397,7 +439,8 @@
           vx: Math.cos(radians) * velocity * 5.4 * direction,
           vy: -Math.sin(radians) * velocity * 5.4,
           rotation: 0,
-          age: 0
+          age: 0,
+          source: "player"
         };
         beep(760, 0.06);
         gorilla.pose = "throw";
@@ -409,7 +452,7 @@
         if (!banana) return;
 
         banana.age += dt;
-        banana.vx += state.wind * 9 * dt;
+        if (banana.source !== "vine") banana.vx += state.wind * 9 * dt;
         banana.vy += state.gravity * dt;
         banana.x += banana.vx * dt;
         banana.y += banana.vy * dt;
@@ -434,7 +477,7 @@
 
       function explode(x, y, victim) {
         state.projectile = null;
-        state.explosion = { x, y, radius: 5, maxRadius: victim >= 0 ? 86 : 68, phase: "grow", victim };
+        state.explosion = { x, y, radius: 5, maxRadius: victim >= 0 ? 86 : 68, phase: "grow", victim, source: state.projectile?.source || "player" };
         if (victim < 0) state.craters.push({ x, y, radius: 70 });
         beep(150, 0.22, 0, "sawtooth");
         beep(85, 0.3, 0.08, "sawtooth");
@@ -459,10 +502,14 @@
         const victim = explosion.victim;
         state.explosion = null;
         if (victim >= 0) finishHit(victim);
-        else finishMiss();
+        else finishMiss(explosion.source);
       }
 
-      function finishMiss() {
+      function finishMiss(source = "player") {
+        if (source === "vine") {
+          scheduleVineEvent();
+          return;
+        }
         state.gorillas[state.turn].pose = "idle";
         state.turn = 1 - state.turn;
         state.message = `${state.players[state.turn]} IST DRAN`;
@@ -578,6 +625,18 @@
         ctx.fillRect(x - 5, y + 19, 10, 4);
       }
 
+      function drawVineGorilla() {
+        const vine = state.vine;
+        if (!vine) return;
+        ctx.strokeStyle = COLORS.green;
+        ctx.lineWidth = 12;
+        ctx.beginPath();
+        ctx.moveTo(vine.x, 0);
+        ctx.lineTo(vine.x, vine.y + 20);
+        ctx.stroke();
+        drawGorilla({ x: vine.x, y: vine.y, alive: true, pose: "idle" }, -1);
+      }
+
       function drawArm(x, y, direction, raised) {
         ctx.fillStyle = COLORS.brown;
         if (raised) {
@@ -657,6 +716,7 @@
         drawSky();
         drawCity();
         state.gorillas.forEach(drawGorilla);
+        drawVineGorilla();
         drawBanana();
         drawExplosion();
         drawHud(now);
@@ -667,6 +727,7 @@
         state.lastTime = now;
         updateProjectile(dt);
         updateExplosion(dt);
+        updateVineEvent(now, dt);
         render(now);
         requestAnimationFrame(frame);
       }
@@ -679,8 +740,10 @@
         ];
         state.target = Number(document.querySelector("#target").value);
         state.gravity = Number(document.querySelector("#gravity").value);
+        state.vineMode = vineModeInput.value === "on";
         state.scores = [0, 0];
         state.turn = 0;
+        scheduleVineEvent();
         startPanel.classList.add("hidden");
         fullscreenButton.classList.remove("hidden");
         newCity();
